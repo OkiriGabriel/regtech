@@ -1,0 +1,58 @@
+# .gitlab-ci.yml
+
+stages:
+  - test
+  - build
+  - deploy
+
+variables:
+  AWS_REGION: "us-east-1"
+  IMAGE_NAME: "regtech"
+  EKS_CLUSTER_NAME: "regtech-cluster"
+  DEPLOYMENT_NAME: "regtech"
+  ENV_VAR_NAME: "regtech"
+
+before_script:
+  - aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+  - aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+  - aws configure set region $AWS_REGION
+
+test:
+  stage: test
+  image: python:3.9
+  script:
+    - pip install --upgrade pip
+    # - pip install -r requirements.txt
+    - python -m unittest discover tests
+
+build:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker build -t $IMAGE_NAME:${CI_COMMIT_SHA} .
+    - echo $AWS_SECRET_ACCESS_KEY | docker login -u AWS --password-stdin $ECR_REGISTRY
+    - docker tag $IMAGE_NAME:${CI_COMMIT_SHA} $ECR_REGISTRY/$IMAGE_NAME:${CI_COMMIT_SHA}
+    - docker push $ECR_REGISTRY/$IMAGE_NAME:${CI_COMMIT_SHA}
+  only:
+    - master
+    - merge_requests
+
+deploy:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  script:
+    - aws eks update-kubeconfig --name $EKS_CLUSTER_NAME
+    - kubectl apply -f kubernetes/graphana/
+    - kubectl set image deployment/$DEPLOYMENT_NAME $ENV_VAR_NAME=$ECR_REGISTRY/$IMAGE_NAME:${CI_COMMIT_SHA}
+    - kubectl rollout status deployment/$DEPLOYMENT_NAME
+  only:
+    - master
+    - merge_requests
+  when: on_success
+  after_script:
+    - |
+      if [ $? -ne 0 ]; then
+        kubectl rollout undo deployment/$DEPLOYMENT_NAME
+      fi
