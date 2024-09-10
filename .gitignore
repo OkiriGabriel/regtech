@@ -9,7 +9,7 @@ crash.log
 *.tfstate.backup
 
 # Terraform CLI configuration files
-.terraform/
+# .terraform/
 
 # AWS CLI configuration files
 .aws/
