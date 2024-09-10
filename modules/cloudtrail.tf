@@ -1,21 +1,5 @@
 data "aws_caller_identity" "current" {}
 
-resource "aws_cloudtrail" "main" {
-  name                        = "regtech-topic"
-  s3_bucket_name              = aws_s3_bucket.secure.bucket
-  include_global_service_events = true
-
-  event_selector {
-    read_write_type           = "All"
-    include_management_events = true
-
-    data_resource {
-      type   = "AWS::S3::Object"
-      values = ["arn:aws:s3:::${aws_s3_bucket.secure.bucket}/"]
-    }
-  }
-}
-
 resource "aws_s3_bucket_policy" "cloudtrail_policy" {
   bucket = aws_s3_bucket.secure.bucket
 
@@ -47,6 +31,21 @@ resource "aws_s3_bucket_policy" "cloudtrail_policy" {
   })
 }
 
+resource "aws_cloudtrail" "main" {
+  name                        = "regtech-topic"
+  s3_bucket_name              = aws_s3_bucket.secure.bucket
+  include_global_service_events = true
+
+  event_selector {
+    read_write_type           = "All"
+    include_management_events = true
+
+    data_resource {
+      type   = "AWS::S3::Object"
+      values = ["arn:aws:s3:::${aws_s3_bucket.secure.bucket}/"]
+    }
+  }
+}
 
 resource "aws_sns_topic" "sns" {
   name = "regtech-topic"
