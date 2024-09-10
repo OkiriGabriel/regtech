@@ -75,17 +75,27 @@ jobs:
     - name: Deploy Prometheus
       run: |
         kubectl apply -f kubernetes/prometheus/ -n monitoring
-        kubectl rollout status deployment/prometheus-deployment -n monitoring
+        kubectl rollout status deployment/prometheus -n monitoring
 
     - name: Deploy Grafana
       run: |
         kubectl apply -f kubernetes/grafana/ -n monitoring
-        kubectl rollout status deployment/grafana-deployment -n monitoring
+        kubectl rollout status deployment/grafana -n monitoring
 
     - name: Verify deployments
       run: |
         kubectl get all -n monitoring
         kubectl get pods -n monitoring
+
+    - name: Get LoadBalancer URL
+      id: get_url
+      run: |
+        # Wait for LoadBalancer to be provisioned
+        sleep 30
+        # Get the LoadBalancer service
+        kubectl get svc -n monitoring -o jsonpath='{.items[?(@.metadata.name=="grafana-service")].status.loadBalancer.ingress[0].hostname}' > loadbalancer_url.txt
+        cat loadbalancer_url.txt
+        echo "LOADBALANCER_URL=$(cat loadbalancer_url.txt)" >> $GITHUB_ENV
 
     - name: Rollback on failure
       if: failure()
