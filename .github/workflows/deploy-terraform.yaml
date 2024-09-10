@@ -161,9 +161,9 @@ jobs:
       # working-directory: ./terraform
 
     - name: Terraform Plan Destroy
-      run: terraform plan -destroy -out=tfplan
+      run: terraform plan  -out=tfplan
       # working-directory: ./terraform
 
     - name: Terraform Apply Destroy
-      run: terraform apply -auto-approve tfplan
-      # working-directory: ./terraform
+      run: terraform destroy -auto-approve tfplan
+    #   # working-directory: ./terraform
