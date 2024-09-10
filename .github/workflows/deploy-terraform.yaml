@@ -14,7 +14,97 @@ env:
   TF_STATE_KEY: "regtech/terraform.tfstate"
 
 jobs:
-  deploy_infrastructure:
+  # deploy_infrastructure:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - uses: actions/checkout@v2
+
+  #   - name: Configure AWS credentials
+  #     uses: aws-actions/configure-aws-credentials@v1
+  #     with:
+  #       aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #       aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #       aws-region: ${{ env.AWS_REGION }}
+
+  #   - name: Setup Terraform
+  #     uses: hashicorp/setup-terraform@v1
+
+  #   - name: Terraform Init
+  #     run: |
+  #       terraform init \
+  #         -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" \
+  #         -backend-config="key=${{ env.TF_STATE_KEY }}" \
+  #         -backend-config="region=${{ env.AWS_REGION }}"
+  #     # working-directory: ./terraform
+
+  #   - name: Terraform Format
+  #     run: terraform fmt
+  #     # working-directory: ./terraform
+
+  #   - name: Terraform Plan
+  #     run: terraform plan -out=tfplan
+  #     # working-directory: ./terraform
+
+  #   - name: Terraform Apply
+  #     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+  #     run: terraform apply -auto-approve tfplan
+  #     # working-directory: ./terraform
+
+  # deploy_kubernetes:
+  #   needs: deploy_infrastructure
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - uses: actions/checkout@v2
+
+  #   - name: Configure AWS credentials
+  #     uses: aws-actions/configure-aws-credentials@v1
+  #     with:
+  #       aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #       aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #       aws-region: ${{ env.AWS_REGION }}
+
+  #   - name: Install kubectl
+  #     uses: azure/setup-kubectl@v1
+
+  #   - name: Update kube config
+  #     run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }}
+
+  #   - name: Create monitoring namespace
+  #     run: kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
+
+  #   - name: Deploy Prometheus
+  #     run: |
+  #       kubectl apply -f kubernetes/prometheus/ -n monitoring
+  #       kubectl rollout status deployment/prometheus -n monitoring
+
+  #   - name: Deploy Grafana
+  #     run: |
+  #       kubectl apply -f kubernetes/grafana/ -n monitoring
+  #       kubectl rollout status deployment/grafana -n monitoring
+
+  #   - name: Verify deployments
+  #     run: |
+  #       kubectl get all -n monitoring
+  #       kubectl get pods -n monitoring
+
+  #   - name: Get LoadBalancer URL
+  #     id: get_url
+  #     run: |
+  #       # Wait for LoadBalancer to be provisioned
+  #       sleep 30
+  #       # Get the LoadBalancer service
+  #       kubectl get svc -n monitoring -o jsonpath='{.items[?(@.metadata.name=="grafana-service")].status.loadBalancer.ingress[0].hostname}' > loadbalancer_url.txt
+  #       cat loadbalancer_url.txt
+  #       echo "LOADBALANCER_URL=$(cat loadbalancer_url.txt)" >> $GITHUB_ENV
+
+  #   - name: Rollback on failure
+  #     if: failure()
+  #     run: |
+  #       kubectl delete namespace monitoring --ignore-not-found
+  #       echo "Deployment failed. Monitoring namespace has been deleted for cleanup."
+
+  unlock_state:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -37,71 +127,14 @@ jobs:
           -backend-config="region=${{ env.AWS_REGION }}"
       # working-directory: ./terraform
 
-    - name: Terraform Format
-      run: terraform fmt
+    - name: Get Lock Info
+      run: terraform state lock-info
       # working-directory: ./terraform
 
-    - name: Terraform Plan
-      run: terraform plan -out=tfplan
+    - name: Unlock State
+      run: terraform force-unlock <LOCK_ID>
+      # Replace <LOCK_ID> with the actual lock ID you want to unlock.
       # working-directory: ./terraform
-
-    - name: Terraform Apply
-      if: github.ref == 'refs/heads/master' && github.event_name == 'push'
-      run: terraform apply -auto-approve tfplan
-      # working-directory: ./terraform
-
-  deploy_kubernetes:
-    needs: deploy_infrastructure
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
-
-    - name: Install kubectl
-      uses: azure/setup-kubectl@v1
-
-    - name: Update kube config
-      run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }}
-
-    - name: Create monitoring namespace
-      run: kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
-
-    - name: Deploy Prometheus
-      run: |
-        kubectl apply -f kubernetes/prometheus/ -n monitoring
-        kubectl rollout status deployment/prometheus -n monitoring
-
-    - name: Deploy Grafana
-      run: |
-        kubectl apply -f kubernetes/grafana/ -n monitoring
-        kubectl rollout status deployment/grafana -n monitoring
-
-    - name: Verify deployments
-      run: |
-        kubectl get all -n monitoring
-        kubectl get pods -n monitoring
-
-    - name: Get LoadBalancer URL
-      id: get_url
-      run: |
-        # Wait for LoadBalancer to be provisioned
-        sleep 30
-        # Get the LoadBalancer service
-        kubectl get svc -n monitoring -o jsonpath='{.items[?(@.metadata.name=="grafana-service")].status.loadBalancer.ingress[0].hostname}' > loadbalancer_url.txt
-        cat loadbalancer_url.txt
-        echo "LOADBALANCER_URL=$(cat loadbalancer_url.txt)" >> $GITHUB_ENV
-
-    - name: Rollback on failure
-      if: failure()
-      run: |
-        kubectl delete namespace monitoring --ignore-not-found
-        echo "Deployment failed. Monitoring namespace has been deleted for cleanup."
 
   destroy_infrastructure:
     if: github.event_name == 'workflow_dispatch'
