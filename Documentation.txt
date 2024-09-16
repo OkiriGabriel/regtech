@@ -1,0 +1,50 @@
+Infrastructure and Cloud Service Decisions
+
+1. Amazon Web Services (AWS)
+Decision: Choose AWS as the cloud provider.
+Explanation: AWS is a leading cloud provider with a broad array of services and a strong reputation. Its Amazon EKS service simplifies Kubernetes management, making it easier for us to deploy and scale our applications without dealing with the complexities of running Kubernetes ourselves.
+
+2. Infrastructure as Code (IaC) with Terraform
+Decision: Use Terraform for infrastructure management.
+Explanation: Terraform enables us to define and manage our infrastructure using code. This approach ensures that our infrastructure is consistent and makes it easier to make updates and changes, reducing the risk of errors and improving reliability.
+
+3. Amazon EKS for Kubernetes
+Decision: Use Amazon EKS for managing Kubernetes clusters.
+Explanation: Amazon EKS takes care of many of the operational aspects of running Kubernetes. By using EKS, we can focus on building and deploying our applications, while AWS handles the management of the Kubernetes control plane and worker nodes.
+
+4. VPC Configuration
+Decision: Create a custom VPC with public and private subnets across multiple Availability Zones.
+Explanation: Setting up a custom VPC with both public and private subnets across different Availability Zones ensures our network is both secure and resilient. This setup helps protect our resources and improves overall availability.
+
+5. S3 Backend for Terraform State
+Decision: Store Terraform state in an S3 bucket.
+Explanation: Using S3 to store Terraform state files centralizes state management and helps prevent conflicts when multiple people are working on infrastructure changes. It also provides a reliable and secure location for our state files.
+
+6. IAM Roles and Policies
+Decision: Use IAM roles and policies for EKS and other AWS resources.
+Explanation: Implementing IAM roles and policies ensures that each resource has only the permissions it needs. This minimizes security risks and helps maintain a secure and controlled environment.
+
+7. Modular Terraform Structure
+Decision: Organize Terraform code into modules (e.g., VPC, EKS, IAM).
+Explanation: Structuring Terraform code into modules makes it more manageable and reusable. This organization allows us to make changes to specific parts of our infrastructure without affecting other components, leading to cleaner and more efficient infrastructure management.
+
+8. Separate Networking and Cluster Creation
+Decision: Create networking resources (VPC, subnets) separately from the EKS cluster.
+Explanation: Keeping networking resources separate from the EKS cluster allows us to manage and update network configurations independently. This separation makes it easier to adjust network settings without impacting the Kubernetes cluster.
+
+9. Use of Managed Node Groups
+Decision: Use EKS managed node groups for worker nodes.
+Explanation: EKS managed node groups handle the provisioning and maintenance of worker nodes, simplifying our operations. This feature reduces the workload on our team and ensures that nodes are automatically updated and managed effectively.
+
+10. Enable EKS Control Plane Logging
+Decision: Enable control plane logging for EKS to CloudWatch Logs.
+Explanation: Turning on control plane logging provides visibility into cluster operations and helps with diagnosing issues. This logging is crucial for monitoring performance, ensuring security, and meeting compliance requirements.
+
+11. Use of Variables and Locals in Terraform
+Decision: Use variables and locals extensively in Terraform configurations.
+Explanation: Utilizing variables and locals makes our Terraform configurations more adaptable and easier to manage. This approach allows us to quickly adjust settings for different environments and maintain a more organized codebase.
+
+12. Tagging Strategy
+Decision: Implement a comprehensive tagging strategy for all resources.
+Explanation: A thorough tagging strategy helps us organize and manage our resources effectively. Tags assist with cost tracking, resource identification, and overall management, which is particularly important for maintaining a large and complex infrastructure.
+
